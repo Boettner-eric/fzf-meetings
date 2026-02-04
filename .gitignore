@@ -1,0 +1,6 @@
+*credentials*
+tokens
+site-packages
+meetings.json
+.env
+.env.local
