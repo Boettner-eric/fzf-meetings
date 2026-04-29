@@ -23,6 +23,17 @@ open_meeting_url() {
 meetings=$(jq -f format-meetings.jq meetings.json)
 rerun=$(echo "$meetings" | jq -r .rerun)
 
+# If cache is stale and all cached meetings are in the past, fetch synchronously
+# so fzf doesn't launch with an empty list while the background reload is pending.
+if [[ -n "$rerun" && "$rerun" != "null" ]]; then
+  items_count=$(echo "$meetings" | jq '.items | length')
+  if [[ "$items_count" == "0" ]]; then
+    python3 meetings.py > /dev/null
+    meetings=$(jq -f format-meetings.jq meetings.json)
+    rerun=$(echo "$meetings" | jq -r .rerun)
+  fi
+fi
+
 # need this to calculate padding
 width=$(tput cols)
 
