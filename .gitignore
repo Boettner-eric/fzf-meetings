@@ -1,6 +1,8 @@
 *credentials*
 tokens
-site-packages
+.venv/
+venv/
 meetings.json
 .env
 .env.local
+config.json

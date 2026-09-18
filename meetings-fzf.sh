@@ -20,7 +20,14 @@ open_meeting_url() {
   fi
 }
 
-meetings=$(jq -f format-meetings.jq meetings.json)
+# Exclude list from config.json, e.g. {"exclude": ["event name"]}. Fall back to an
+# empty list when the file is missing or the value is not a JSON array so jq never fails on it.
+excluded_events="$(jq -c '.exclude // []' config.json 2>/dev/null)"
+if ! printf '%s' "$excluded_events" | jq -e 'type == "array"' > /dev/null 2>&1; then
+  excluded_events="[]"
+fi
+
+meetings=$(jq --argjson excluded_events "$excluded_events" -f format-meetings.jq meetings.json)
 rerun=$(echo "$meetings" | jq -r .rerun)
 
 # If cache is stale and all cached meetings are in the past, fetch synchronously
@@ -28,8 +35,8 @@ rerun=$(echo "$meetings" | jq -r .rerun)
 if [[ -n "$rerun" && "$rerun" != "null" ]]; then
   items_count=$(echo "$meetings" | jq '.items | length')
   if [[ "$items_count" == "0" ]]; then
-    python3 meetings.py > /dev/null
-    meetings=$(jq -f format-meetings.jq meetings.json)
+    ./.venv/bin/python3 meetings.py > /dev/null
+    meetings=$(jq --argjson excluded_events "$excluded_events" -f format-meetings.jq meetings.json)
     rerun=$(echo "$meetings" | jq -r .rerun)
   fi
 fi
